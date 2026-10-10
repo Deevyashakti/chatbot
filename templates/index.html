@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis</title>
+    <style>
+        :root {
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #1e293b;
+            --accent: #6366f1;
+            --accent-dark: #4f46e5;
+            --gmail-blue: #0b57d0;
+            --gmail-blue-dark: #0842a0;
+            --bg: #f5f7fb;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #ea580c;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        .app { display: flex; height: 100vh; }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 14px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px 24px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #22d3ee);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 10px 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 11px 12px;
+            margin-bottom: 4px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--sidebar-text);
+            font-size: 15px;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .nav-item:hover { background: var(--sidebar-active); color: #e2e8f0; }
+        .nav-item.active { background: var(--sidebar-active); color: #fff; }
+        .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+        .nav-badge {
+            margin-left: auto;
+            min-width: 22px;
+            padding: 1px 7px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .nav-badge:empty { display: none; }
+
+        .sidebar-footer { margin-top: auto; padding: 0 10px; font-size: 12px; }
+
+        /* ---------- Main ---------- */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .topbar {
+            height: 64px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .topbar h1 { margin: 0; font-size: 18px; font-weight: 600; }
+        .topbar .subtitle { font-size: 13px; color: var(--muted); }
+
+        .view { display: none; flex: 1; min-height: 0; }
+        .view.active { display: flex; }
+
+        /* ---------- Chat ---------- */
+        #chat-view { flex-direction: column; }
+
+        #chat-container { flex: 1; overflow-y: auto; padding: 28px; }
+
+        .chat-inner {
+            max-width: 820px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .message-row { display: flex; gap: 10px; align-items: flex-end; }
+        .message-row.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #6366f1, #22d3ee);
+        }
+
+        .message-row.user .avatar { background: #334155; font-size: 10px; }
+
+        .bubble {
+            max-width: 75%;
+            padding: 11px 15px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-row.user .bubble {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .typing span {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            margin: 0 2px;
+            border-radius: 50%;
+            background: var(--muted);
+            animation: blink 1.2s infinite;
+        }
+
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0.25; }
+            40% { opacity: 1; }
+        }
+
+        .composer { padding: 16px 28px 22px; background: var(--bg); }
+
+        .composer-box {
+            max-width: 820px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 8px 8px 8px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+
+        .composer-box:focus-within { border-color: var(--accent); }
+
+        #message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            resize: none;
+            max-height: 160px;
+            padding: 10px 0;
+            font-size: 15px;
+            font-family: inherit;
+            line-height: 1.4;
+            background: transparent;
+        }
+
+        .listen-hint {
+            max-width: 820px;
+            margin: 8px auto 0;
+            font-size: 12px;
+            color: var(--muted);
+            min-height: 16px;
+        }
+
+        /* ---------- Buttons ---------- */
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: #444746;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .icon-btn:hover { background: #eef1f5; color: var(--text); }
+        .icon-btn.on { background: #d3e3fd; color: var(--gmail-blue); }
+        .icon-btn svg { width: 20px; height: 20px; }
+
+        .icon-btn.primary { background: var(--accent); color: #fff; }
+        .icon-btn.primary:hover { background: var(--accent-dark); }
+
+        .icon-btn.listening {
+            background: var(--danger);
+            color: #fff;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        button:disabled { opacity: 0.55; cursor: default; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 38px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 19px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn svg { width: 18px; height: 18px; }
+        .btn-primary { background: var(--gmail-blue); color: #fff; }
+        .btn-primary:hover { background: var(--gmail-blue-dark); }
+        .btn-light { background: #eef2ff; color: var(--accent-dark); }
+        .btn-light:hover { background: #e0e7ff; }
+        .btn-ghost { background: transparent; color: var(--muted); }
+        .btn-ghost:hover { background: #f1f5f9; color: var(--text); }
+
+        /* ---------- Gmail compose ---------- */
+        #gmail-view { overflow-y: auto; padding: 24px 28px; }
+        #gmail-view.active { display: block; }
+
+        .compose {
+            width: 100%;
+            max-width: 860px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100% - 10px);
+            background: var(--surface);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .compose-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: #f2f6fc;
+            border-radius: 14px 14px 0 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .compose-header svg { width: 22px; height: 22px; }
+
+        .compose-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 20px;
+            min-height: 46px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compose-field.hidden { display: none; }
+
+        .compose-field > label {
+            font-size: 14px;
+            color: var(--muted);
+            min-width: 54px;
+        }
+
+        .compose-field > input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 12px 0;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .recipients {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 0;
+            min-width: 0;
+            cursor: text;
+        }
+
+        .recipients input {
+            flex: 1;
+            min-width: 160px;
+            border: none;
+            outline: none;
+            padding: 5px 0;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .rcpt {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 100%;
+            padding: 3px 4px 3px 10px;
+            border: 1px solid #c4c7c5;
+            border-radius: 16px;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .rcpt.invalid { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+
+        .rcpt button {
+            width: 20px;
+            height: 20px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: inherit;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .rcpt button:hover { background: #e2e8f0; }
+
+        .cc-toggles { display: flex; gap: 4px; }
+
+        .cc-toggles button {
+            border: none;
+            background: none;
+            padding: 4px 6px;
+            border-radius: 6px;
+            color: var(--muted);
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .cc-toggles button:hover { color: var(--text); text-decoration: underline; }
+        .cc-toggles button.hidden { display: none; }
+
+        .format-bar {
+            display: none;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 2px;
+            margin: 8px 16px 0;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #f0f4f9;
+        }
+
+        .format-bar.open { display: flex; }
+        .format-bar .icon-btn { width: 34px; height: 34px; font-size: 15px; }
+        .format-bar .sep { width: 1px; height: 20px; background: #c4c7c5; margin: 0 4px; }
+
+        .format-bar select {
+            height: 30px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .color-swatch { position: relative; }
+
+        .color-swatch input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        #email-body {
+            flex: 1;
+            min-height: 220px;
+            padding: 16px 20px;
+            outline: none;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
+
+        #email-body:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        #email-body img { max-width: 100%; height: auto; }
+        #email-body blockquote { margin: 0 0 0 8px; padding-left: 12px; border-left: 3px solid #cbd5e1; color: #475569; }
+
+        .mention {
+            color: var(--gmail-blue);
+            background: #e8f0fe;
+            border-radius: 4px;
+            padding: 0 3px;
+            text-decoration: none;
+        }
+
+        #attachment-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0;
+            padding: 0 20px;
+        }
+
+        #attachment-list:not(:empty) { padding-bottom: 12px; }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 280px;
+            padding: 6px 6px 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8fafc;
+            font-size: 13px;
+        }
+
+        .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chip-size { color: var(--muted); flex-shrink: 0; }
+
+        .chip button {
+            width: 22px;
+            height: 22px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .chip button:hover { background: #e2e8f0; color: var(--text); }
+
+        .compose-toolbar {
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 10px 14px;
+        }
+
+        .compose-toolbar .icon-btn { width: 36px; height: 36px; }
+
+        .send-group { display: inline-flex; margin-right: 8px; }
+
+        .send-group .btn-primary:first-child { border-radius: 19px 0 0 19px; padding: 0 18px 0 22px; }
+
+        .send-group .btn-primary:last-child {
+            border-radius: 0 19px 19px 0;
+            padding: 0 10px;
+            border-left: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .toolbar-text-icon { font-size: 15px; font-weight: 600; letter-spacing: -0.5px; }
+        .toolbar-spacer { flex: 1; }
+
+        #email-status {
+            padding: 0 20px 10px;
+            font-size: 13px;
+            min-height: 18px;
+            color: var(--muted);
+        }
+
+        #email-status.error { color: var(--danger); }
+        #email-status.success { color: var(--success); }
+
+        .scheduled-box {
+            max-width: 860px;
+            margin: 18px auto 0;
+            padding: 14px 18px;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+
+        .scheduled-box h3 { margin: 0 0 8px; font-size: 14px; }
+
+        .scheduled-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .scheduled-item .when { color: var(--gmail-blue); font-weight: 600; min-width: 150px; }
+        .scheduled-item .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ---------- Popovers, dropdowns, modals ---------- */
+        .popover {
+            position: fixed;
+            z-index: 50;
+            display: none;
+            min-width: 220px;
+            padding: 12px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.18);
+            font-size: 14px;
+        }
+
+        .popover.open { display: block; }
+        .popover h4 { margin: 0 0 10px; font-size: 14px; }
+
+        .popover label { display: block; margin: 8px 0 4px; font-size: 12px; color: var(--muted); }
+
+        .popover input[type=text], .popover input[type=url], .popover input[type=datetime-local], .popover textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .popover input:focus, .popover textarea:focus { border-color: var(--gmail-blue); }
+        .popover textarea { min-height: 90px; resize: vertical; }
+
+        .popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+        .emoji-grid { display: grid; grid-template-columns: repeat(8, 34px); gap: 2px; }
+
+        .emoji-grid button {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 8px;
+            background: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .emoji-grid button:hover { background: #f1f5f9; }
+
+        .menu-item {
+            display: block;
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 8px;
+            background: none;
+            text-align: left;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .menu-item:hover { background: #f1f5f9; }
+        .menu-item small { display: block; color: var(--muted); font-size: 12px; }
+
+        .suggestions {
+            position: fixed;
+            z-index: 60;
+            display: none;
+            min-width: 260px;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 6px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.18);
+        }
+
+        .suggestions.open { display: block; }
+
+        .suggestion {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .suggestion.active, .suggestion:hover { background: #e8f0fe; }
+
+        .suggestion .avatar { width: 30px; height: 30px; font-size: 12px; }
+        .suggestion .s-name { font-size: 14px; }
+        .suggestion .s-email { font-size: 12px; color: var(--muted); }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 70;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.45);
+        }
+
+        .modal-backdrop.open { display: flex; }
+
+        .modal {
+            width: min(480px, 92vw);
+            padding: 22px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+        }
+
+        .modal h3 { margin: 0 0 6px; font-size: 17px; }
+        .modal p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+
+        .modal textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+        }
+
+        .modal textarea:focus { border-color: var(--gmail-blue); }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            z-index: 80;
+            transform: translateX(-50%) translateY(20px);
+            padding: 10px 18px;
+            border-radius: 8px;
+            background: #1e293b;
+            color: #fff;
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ---------- Tasks ---------- */
+        #tasks-view { overflow-y: auto; padding: 24px 28px; }
+        #tasks-view.active { display: block; }
+
+        .tasks-wrap { max-width: 1200px; margin: 0 auto; }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .stat-card {
+            padding: 14px 16px;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            background: var(--surface);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+            text-align: left;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .stat-card:hover { border-color: #e2e8f0; }
+        .stat-card.active { border-color: var(--accent); }
+        .stat-card .label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+        .stat-card .count { margin-top: 4px; font-size: 26px; font-weight: 700; color: var(--text); }
+
+        .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .dot.all { background: var(--accent); }
+        .dot.not-started { background: #94a3b8; }
+        .dot.in-progress { background: #f97316; }
+        .dot.completed { background: #22c55e; }
+        .dot.overdue { background: var(--danger); }
+
+        .tasks-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 420px;
+            padding: 0 14px;
+            height: 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
+
+        .search-box svg { width: 18px; height: 18px; color: var(--muted); }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+            background: transparent;
+        }
+
+        .sync-info {
+            flex: 1 1 220px;
+            min-width: 0;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+        }
+
+        .search-box { min-width: 220px; }
+
+        .banner {
+            display: none;
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .banner.show { display: block; }
+        .banner.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+        .banner.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .banner code { background: rgba(0, 0, 0, 0.06); padding: 1px 5px; border-radius: 4px; }
+
+        .task-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        .task-table th {
+            padding: 11px 14px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .task-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+
+        .task-table tr:last-child td { border-bottom: none; }
+        .task-table tr.overdue td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+
+        .task-id { font-weight: 600; color: var(--muted); white-space: nowrap; }
+        .task-title { font-weight: 600; }
+        .task-details { margin-top: 2px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+        .task-from { margin-top: 4px; font-size: 12px; color: #475569; }
+        .task-note { margin-top: 4px; font-size: 12px; color: var(--success); }
+        .nowrap { white-space: nowrap; }
+        .muted { color: var(--muted); }
+        .overdue-text { color: var(--danger); font-weight: 600; }
+
+        .priority {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .priority.High { background: #fee2e2; color: #b91c1c; }
+        .priority.Medium { background: #e0e7ff; color: #4338ca; }
+        .priority.Low { background: #f1f5f9; color: #475569; }
+
+        .status-select {
+            padding: 5px 26px 5px 10px;
+            border: none;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 10px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23475569' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+        }
+
+        .status-select.not-started { background-color: #f1f5f9; color: #334155; }
+        .status-select.in-progress { background-color: #ffedd5; color: #c2410c; }
+        .status-select.completed { background-color: #dcfce7; color: #15803d; }
+
+        .reply-flag { margin-top: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+        .empty-state {
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--muted);
+            background: var(--surface);
+            border-radius: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .stat-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .task-table .hide-sm { display: none; }
+        }
+
+        @media (max-width: 760px) {
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; align-items: center; padding: 10px; gap: 6px; }
+            .brand { padding: 0 10px 0 4px; font-size: 17px; }
+            .nav-label, .sidebar-footer { display: none; }
+            .nav-item { width: auto; margin: 0; }
+            .topbar { padding: 0 16px; }
+            #chat-container, #gmail-view, #tasks-view { padding: 16px; }
+            .composer { padding: 12px 16px 16px; }
+            .bubble { max-width: 85%; }
+            .stat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">J</div>
+            Jarvis
+        </div>
+        <div class="nav-label">Workspace</div>
+        <button class="nav-item active" data-view="chat" onclick="showView('chat')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Chat
+        </button>
+        <button class="nav-item" data-view="gmail" onclick="showView('gmail')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+            Gmail
+        </button>
+        <button class="nav-item" data-view="tasks" onclick="showView('tasks')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Tasks
+            <span class="nav-badge" id="tasks-badge"></span>
+        </button>
+        <div class="sidebar-footer">Powered by Claude</div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <h1 id="view-title">Chat</h1>
+                <div class="subtitle" id="view-subtitle">Ask Jarvis anything, or tell it what to do</div>
+            </div>
+        </header>
+
+        <!-- ================= Chat view ================= -->
+        <section class="view active" id="chat-view">
+            <div id="chat-container">
+                <div class="chat-inner" id="chat-inner"></div>
+            </div>
+            <div class="composer">
+                <div class="composer-box">
+                    <textarea id="message-input" rows="1" placeholder="Message Jarvis..."></textarea>
+                    <button class="icon-btn mic-btn" data-target="message-input" title="Speak" onclick="toggleListening('message-input')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+                    </button>
+                    <button class="icon-btn primary" id="send-btn" title="Send" onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+                <div class="listen-hint" data-hint-for="message-input"></div>
+            </div>
+        </section>
+
+        <!-- ================= Gmail view ================= -->
+        <section class="view" id="gmail-view">
+            <div class="compose">
+                <div class="compose-header">
+                    <svg viewBox="52 42 88 66"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg>
+                    New message
+                </div>
+
+                <div class="compose-field">
+                    <label>To</label>
+                    <div class="recipients" data-field="to"></div>
+                    <div class="cc-toggles">
+                        <button id="show-cc" onclick="showCopyField('cc')">Cc</button>
+                        <button id="show-bcc" onclick="showCopyField('bcc')">Bcc</button>
+                    </div>
+                </div>
+                <div class="compose-field hidden" id="cc-row">
+                    <label>Cc</label>
+                    <div class="recipients" data-field="cc"></div>
+                </div>
+                <div class="compose-field hidden" id="bcc-row">
+                    <label>Bcc</label>
+                    <div class="recipients" data-field="bcc"></div>
+                </div>
+                <div class="compose-field">
+                    <label for="email-subject">Subject</label>
+                    <input type="text" id="email-subject" placeholder="Subject">
+                </div>
+
+                <div class="format-bar" id="format-bar">
+                    <button class="icon-btn" title="Undo" onmousedown="event.preventDefault()" onclick="fmt('undo')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Redo" onmousedown="event.preventDefault()" onclick="fmt('redo')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>
+                    </button>
+                    <span class="sep"></span>
+                    <select title="Size" onmousedown="saveSelection()" onchange="restoreSelection(); fmt('fontSize', this.value); this.selectedIndex = 0;">
+                        <option value="" disabled selected>Size</option>
+                        <option value="2">Small</option>
+                        <option value="3">Normal</option>
+                        <option value="5">Large</option>
+                        <option value="6">Huge</option>
+                    </select>
+                    <span class="sep"></span>
+                    <button class="icon-btn" title="Bold" onmousedown="event.preventDefault()" onclick="fmt('bold')"><b>B</b></button>
+                    <button class="icon-btn" title="Italic" onmousedown="event.preventDefault()" onclick="fmt('italic')"><i style="font-family: Georgia, serif;">I</i></button>
+                    <button class="icon-btn" title="Underline" onmousedown="event.preventDefault()" onclick="fmt('underline')"><u>U</u></button>
+                    <button class="icon-btn" title="Strikethrough" onmousedown="event.preventDefault()" onclick="fmt('strikeThrough')"><s>S</s></button>
+                    <span class="icon-btn color-swatch" title="Text colour" onmousedown="saveSelection()">
+                        <span style="font-weight: 700; border-bottom: 3px solid #d93025; line-height: 1.1;">A</span>
+                        <input type="color" value="#d93025" onchange="restoreSelection(); fmt('foreColor', this.value);">
+                    </span>
+                    <span class="sep"></span>
+                    <button class="icon-btn" title="Numbered list" onmousedown="event.preventDefault()" onclick="fmt('insertOrderedList')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Bulleted list" onmousedown="event.preventDefault()" onclick="fmt('insertUnorderedList')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Quote" onmousedown="event.preventDefault()" onclick="fmt('formatBlock', 'blockquote')">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h4v4c0 3-1.5 5-4 6l-.7-1.2C7.7 15 8.5 13.6 8.6 12H7zM14 7h4v4c0 3-1.5 5-4 6l-.7-1.2c1.4-.8 2.2-2.2 2.3-3.8H14z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Remove formatting" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')">
+                        <span style="font-size: 14px;">T<sub style="font-size: 9px;">x</sub></span>
+                    </button>
+                </div>
+
+                <div id="email-body" contenteditable="true" data-placeholder="Write your message. Type @ to tag someone. Rough notes are fine, use Help me write to polish them."></div>
+                <ul id="attachment-list"></ul>
+                <div id="email-status"></div>
+
+                <div class="compose-toolbar">
+                    <div class="send-group">
+                        <button class="btn btn-primary" id="send-email-btn" onclick="sendEmail()">Send</button>
+                        <button class="btn btn-primary" id="send-more-btn" title="More send options" onclick="openPopover('send-menu', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                    </div>
+                    <button class="icon-btn" id="format-toggle" title="Formatting options" onclick="toggleFormatBar()">
+                        <span class="toolbar-text-icon">Aa</span>
+                    </button>
+                    <button class="icon-btn" id="polish-btn" title="Help me write (polish with AI)" onclick="polishEmail()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6L9 21H3v-6z"/><path d="M5 2l.6 1.4L7 4l-1.4.6L5 6l-.6-1.4L3 4l1.4-.6zM19 15l.6 1.4L21 17l-1.4.6L19 19l-.6-1.4L17 17l1.4-.6z" fill="currentColor" stroke="none"/></svg>
+                    </button>
+                    <input type="file" id="email-files" multiple hidden onchange="addFiles(this)">
+                    <button class="icon-btn" title="Attach files" onclick="document.getElementById('email-files').click()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Insert link" onmousedown="saveSelection()" onclick="openLinkDialog('link', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Insert emoji" onmousedown="saveSelection()" onclick="openPopover('emoji-popover', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Insert Google Drive link" onmousedown="saveSelection()" onclick="openLinkDialog('drive', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l6 10.5-4 7H6l-4-7z"/><path d="M8 3l6 10.5h8M2 13.5h12L10 20.5"/></svg>
+                    </button>
+                    <input type="file" id="email-image" accept="image/*" hidden onchange="insertImage(this)">
+                    <button class="icon-btn" title="Insert photo" onmousedown="saveSelection()" onclick="document.getElementById('email-image').click()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Insert signature" onmousedown="saveSelection()" onclick="openSignature(this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Schedule send" onclick="openSchedule(this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 13v3l2 1.5"/></svg>
+                    </button>
+                    <button class="icon-btn mic-btn" data-target="email-body" title="Dictate message" onclick="toggleListening('email-body')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+                    </button>
+                    <div class="toolbar-spacer"></div>
+                    <button class="icon-btn" title="Discard draft" onclick="discardEmail()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                </div>
+                <div class="listen-hint" data-hint-for="email-body" style="padding: 0 20px 12px; margin: 0;"></div>
+            </div>
+
+            <div class="scheduled-box" id="scheduled-box" style="display: none;">
+                <h3>Scheduled emails</h3>
+                <div id="scheduled-list"></div>
+            </div>
+        </section>
+
+        <!-- ================= Tasks view ================= -->
+        <section class="view" id="tasks-view">
+            <div class="tasks-wrap">
+                <div class="banner info" id="tasks-setup-banner"></div>
+                <div class="banner warn" id="tasks-warn-banner"></div>
+
+                <div class="stat-cards">
+                    <button class="stat-card active" data-filter="all" onclick="setTaskFilter('all')">
+                        <div class="label"><span class="dot all"></span>All tasks</div>
+                        <div class="count" id="count-all">0</div>
+                    </button>
+                    <button class="stat-card" data-filter="Not Started" onclick="setTaskFilter('Not Started')">
+                        <div class="label"><span class="dot not-started"></span>Not started</div>
+                        <div class="count" id="count-not-started">0</div>
+                    </button>
+                    <button class="stat-card" data-filter="In Progress" onclick="setTaskFilter('In Progress')">
+                        <div class="label"><span class="dot in-progress"></span>In progress</div>
+                        <div class="count" id="count-in-progress">0</div>
+                    </button>
+                    <button class="stat-card" data-filter="Completed" onclick="setTaskFilter('Completed')">
+                        <div class="label"><span class="dot completed"></span>Completed</div>
+                        <div class="count" id="count-completed">0</div>
+                    </button>
+                    <button class="stat-card" data-filter="overdue" onclick="setTaskFilter('overdue')">
+                        <div class="label"><span class="dot overdue"></span>Overdue</div>
+                        <div class="count" id="count-overdue">0</div>
+                    </button>
+                </div>
+
+                <div class="tasks-toolbar">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                        <input type="text" id="task-search" placeholder="Search tasks, people or subjects" oninput="renderTasks()">
+                    </div>
+                    <button class="btn btn-light" id="check-now-btn" onclick="checkTasksNow()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+                        Check email now
+                    </button>
+                    <div class="sync-info" id="sync-info"></div>
+                </div>
+
+                <div id="tasks-container"></div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ================= Popovers ================= -->
+<div class="popover" id="send-menu">
+    <button class="menu-item" onclick="closePopovers(); openSchedule(document.getElementById('send-more-btn'))">
+        Schedule send
+        <small>Pick a date and time to send this email</small>
+    </button>
+</div>
+
+<div class="popover" id="emoji-popover">
+    <div class="emoji-grid" id="emoji-grid"></div>
+</div>
+
+<div class="popover" id="link-popover" style="width: 320px;">
+    <h4 id="link-title">Insert link</h4>
+    <label for="link-text">Text to display</label>
+    <input type="text" id="link-text">
+    <label for="link-url" id="link-url-label">Web address (URL)</label>
+    <input type="url" id="link-url" placeholder="https://">
+    <div class="popover-actions">
+        <button class="btn btn-ghost" onclick="closePopovers()">Cancel</button>
+        <button class="btn btn-primary" onclick="insertLink()">Insert</button>
+    </div>
+</div>
+
+<div class="popover" id="signature-popover" style="width: 340px;">
+    <h4>Signature</h4>
+    <textarea id="signature-text" placeholder="e.g.&#10;Deevya&#10;MIS Executive, Deevyashakti"></textarea>
+    <div class="popover-actions">
+        <button class="btn btn-ghost" onclick="saveSignature()">Save</button>
+        <button class="btn btn-primary" onclick="saveSignature(); insertSignature();">Insert</button>
+    </div>
+</div>
+
+<div class="popover" id="schedule-popover" style="width: 320px;">
+    <h4>Schedule send</h4>
+    <div id="schedule-presets"></div>
+    <label for="schedule-at">Pick date &amp; time</label>
+    <input type="datetime-local" id="schedule-at">
+    <div class="popover-actions">
+        <button class="btn btn-ghost" onclick="closePopovers()">Cancel</button>
+        <button class="btn btn-primary" onclick="scheduleFromPicker()">Schedule send</button>
+    </div>
+</div>
+
+<div class="suggestions" id="suggestions"></div>
+
+<div class="modal-backdrop" id="complete-modal">
+    <div class="modal">
+        <h3 id="complete-title">Mark task as completed</h3>
+        <p id="complete-desc">Jarvis will reply to the original email to let your manager know.</p>
+        <textarea id="complete-note" placeholder="Optional note to include in the reply, e.g. 'Report uploaded to the shared drive.'"></textarea>
+        <div class="popover-actions">
+            <button class="btn btn-ghost" onclick="closeCompleteModal(false)">Cancel</button>
+            <button class="btn btn-primary" id="complete-confirm" onclick="closeCompleteModal(true)">Mark completed</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // ================= Helpers =================
+    function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+
+    var toastTimer = null;
+    function toast(text) {
+        var el = document.getElementById("toast");
+        el.textContent = text;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3000);
+    }
+
+    function nameFromEmail(addr) {
+        var local = addr.split("@")[0].replace(/[._-]+/g, " ").replace(/\d+/g, "").trim();
+        return local ? local.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : addr;
+    }
+
+    function initials(name) {
+        var parts = name.trim().split(/\s+/);
+        return ((parts[0] || "?")[0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+    }
+
+    // ================= Navigation =================
+    var views = {
+        chat: { title: "Chat", subtitle: "Ask Jarvis anything, or tell it what to do" },
+        gmail: { title: "Gmail", subtitle: "Compose and send an email from your account" },
+        tasks: { title: "Tasks", subtitle: "Tasks your managers assigned by email" }
+    };
+    var currentView = "chat";
+
+    function showView(name) {
+        stopListening();
+        closePopovers();
+        hideSuggestions();
+        currentView = name;
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        document.getElementById(name + "-view").classList.add("active");
+        document.querySelectorAll(".nav-item").forEach(function (item) {
+            item.classList.toggle("active", item.dataset.view === name);
+        });
+        document.getElementById("view-title").textContent = views[name].title;
+        document.getElementById("view-subtitle").textContent = views[name].subtitle;
+        if (name === "chat") messageInput.focus();
+        if (name === "gmail") {
+            loadContacts();
+            loadScheduled();
+            if (!recipients.to.list.length) recipients.to.input.focus();
+        }
+        if (name === "tasks") loadTasks();
+    }
+
+    // ================= Chat =================
+    var messageInput = document.getElementById("message-input");
+
+    messageInput.addEventListener("input", autoGrow);
+    messageInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function autoGrow() {
+        messageInput.style.height = "auto";
+        messageInput.style.height = messageInput.scrollHeight + "px";
+    }
+
+    function addMessage(sender, text) {
+        var row = document.createElement("div");
+        row.className = "message-row " + sender;
+
+        var avatar = document.createElement("div");
+        avatar.className = "avatar";
+        avatar.textContent = sender === "user" ? "You" : "J";
+
+        var bubble = document.createElement("div");
+        bubble.className = "bubble";
+        if (text === null) {
+            bubble.classList.add("typing");
+            bubble.innerHTML = "<span></span><span></span><span></span>";
+        } else {
+            bubble.textContent = text;
+        }
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        document.getElementById("chat-inner").appendChild(row);
+        var container = document.getElementById("chat-container");
+        container.scrollTop = container.scrollHeight;
+        return bubble;
+    }
+
+    function sendMessage() {
+        stopListening();
+        var message = messageInput.value.trim();
+        if (!message) return;
+
+        addMessage("user", message);
+        messageInput.value = "";
+        autoGrow();
+
+        var sendBtn = document.getElementById("send-btn");
+        sendBtn.disabled = true;
+        var replyBubble = addMessage("jarvis", null);
+
+        fetch("/process_message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message })
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            var reply = data.response;
+            if (reply === null || reply === undefined || reply === "") reply = "Sorry, I didn't get a response.";
+            if (typeof reply !== "string") reply = JSON.stringify(reply, null, 2);
+            replyBubble.classList.remove("typing");
+            replyBubble.textContent = reply;
+            refreshTaskBadge();
+        })
+        .catch(function (error) {
+            replyBubble.classList.remove("typing");
+            replyBubble.textContent = "Something went wrong: " + error;
+        })
+        .finally(function () {
+            sendBtn.disabled = false;
+            var container = document.getElementById("chat-container");
+            container.scrollTop = container.scrollHeight;
+        });
+    }
+
+    // ================= Voice input =================
+    // Keeps listening through pauses and only stops after SILENCE_MS without speech.
+    var SILENCE_MS = 15000;
+    var SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = null;
+    var listening = false;
+    var listenTarget = null;
+    var baseText = "";
+    var finalText = "";
+    var silenceTimer = null;
+    var countdownTimer = null;
+    var lastSpeechAt = 0;
+
+    function isRich(field) { return field.isContentEditable; }
+
+    function showDictation(field, text) {
+        if (isRich(field)) {
+            field.innerHTML = baseText + escapeHtml(text);
+        } else {
+            field.value = baseText + text;
+            if (field === messageInput) autoGrow();
+        }
+    }
+
+    function setHint(targetId, text) {
+        document.querySelectorAll(".listen-hint").forEach(function (h) {
+            h.textContent = h.dataset.hintFor === targetId ? text : "";
+        });
+    }
+
+    function updateMicButtons() {
+        document.querySelectorAll(".mic-btn").forEach(function (btn) {
+            btn.classList.toggle("listening", listening && btn.dataset.target === listenTarget);
+        });
+    }
+
+    function resetSilenceTimer() {
+        lastSpeechAt = Date.now();
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(stopListening, SILENCE_MS);
+        updateCountdown();
+    }
+
+    function updateCountdown() {
+        if (!listening) return;
+        var left = Math.max(0, Math.ceil((SILENCE_MS - (Date.now() - lastSpeechAt)) / 1000));
+        setHint(listenTarget, "Listening... stops after 15 seconds of silence (" + left + "s). Click the mic to stop now.");
+    }
+
+    function toggleListening(targetId) {
+        if (listening && listenTarget === targetId) {
+            stopListening();
+        } else {
+            stopListening();
+            startListening(targetId);
+        }
+    }
+
+    function startListening(targetId) {
+        if (!SpeechRecognitionImpl) {
+            setHint(targetId, "Voice input isn't supported in this browser. Use Chrome or Edge.");
+            return;
+        }
+
+        listenTarget = targetId;
+        var field = document.getElementById(targetId);
+        if (isRich(field)) {
+            baseText = field.innerHTML.trim() ? field.innerHTML + " " : "";
+        } else {
+            baseText = field.value ? field.value.replace(/\s+$/, "") + " " : "";
+        }
+        finalText = "";
+        listening = true;
+
+        recognition = new SpeechRecognitionImpl();
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = function (event) {
+            var interim = "";
+            for (var i = event.resultIndex; i < event.results.length; i++) {
+                var transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalText += transcript.trim() + " ";
+                } else {
+                    interim += transcript;
+                }
+            }
+            showDictation(field, finalText + interim);
+            resetSilenceTimer();
+        };
+
+        recognition.onerror = function (event) {
+            if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+                stopListening();
+                setHint(targetId, "Microphone access was blocked. Allow it in the browser's address bar and try again.");
+            } else if (event.error === "audio-capture") {
+                stopListening();
+                setHint(targetId, "No microphone was found.");
+            }
+            // "no-speech" and "network" are handled by restarting in onend
+        };
+
+        // The browser ends recognition on its own after a short pause; restart it
+        // until the 15 second silence window has really passed.
+        recognition.onend = function () {
+            if (listening) {
+                try { recognition.start(); } catch (e) { stopListening(); }
+            }
+        };
+
+        try {
+            recognition.start();
+        } catch (e) {
+            listening = false;
+            setHint(targetId, "Could not start the microphone: " + e.message);
+            return;
+        }
+
+        resetSilenceTimer();
+        countdownTimer = setInterval(updateCountdown, 500);
+        updateMicButtons();
+    }
+
+    function stopListening() {
+        if (!listening) return;
+        listening = false;
+        clearTimeout(silenceTimer);
+        clearInterval(countdownTimer);
+        if (recognition) {
+            recognition.onend = null;
+            try { recognition.stop(); } catch (e) {}
+            recognition = null;
+        }
+        var field = document.getElementById(listenTarget);
+        if (field) showDictation(field, finalText.replace(/\s+$/, ""));
+        setHint(listenTarget, "");
+        updateMicButtons();
+    }
+
+    // ================= Popovers =================
+    function openPopover(id, anchor) {
+        var pop = document.getElementById(id);
+        var wasOpen = pop.classList.contains("open");
+        closePopovers();
+        if (wasOpen) return;
+        pop.classList.add("open");
+        var rect = anchor.getBoundingClientRect();
+        var width = pop.offsetWidth, height = pop.offsetHeight;
+        var left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
+        var top = rect.top - height - 8;
+        if (top < 8) top = rect.bottom + 8;
+        top = Math.max(8, Math.min(top, window.innerHeight - height - 8));
+        pop.style.left = left + "px";
+        pop.style.top = top + "px";
+    }
+
+    function closePopovers() {
+        document.querySelectorAll(".popover.open").forEach(function (p) { p.classList.remove("open"); });
+    }
+
+    document.addEventListener("mousedown", function (e) {
+        if (!e.target.closest(".popover") && !e.target.closest(".compose-toolbar") && !e.target.closest(".format-bar")) {
+            closePopovers();
+        }
+        if (!e.target.closest(".suggestions")) hideSuggestions();
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            closePopovers();
+            hideSuggestions();
+        }
+    });
+
+    // ================= Contacts =================
+    var contacts = [];
+
+    function loadContacts() {
+        fetch("/contacts").then(function (r) { return r.json(); }).then(function (data) {
+            contacts = data.map(function (c) {
+                return { email: c.email, name: c.name || nameFromEmail(c.email) };
+            });
+        }).catch(function () {});
+    }
+
+    function rememberLocalContact(addr) {
+        addr = addr.toLowerCase();
+        if (!contacts.some(function (c) { return c.email === addr; })) {
+            contacts.push({ email: addr, name: nameFromEmail(addr) });
+        }
+    }
+
+    function matchContacts(query, exclude) {
+        query = query.toLowerCase();
+        return contacts.filter(function (c) {
+            if (exclude && exclude.indexOf(c.email) !== -1) return false;
+            return !query || c.email.indexOf(query) !== -1 || c.name.toLowerCase().indexOf(query) !== -1;
+        }).slice(0, 8);
+    }
+
+    // ================= Suggestions dropdown (recipients and @mentions) =================
+    var suggestionState = null;
+
+    function showSuggestions(items, rect, onPick) {
+        var box = document.getElementById("suggestions");
+        if (!items.length) { hideSuggestions(); return; }
+        box.innerHTML = "";
+        items.forEach(function (c, index) {
+            var row = document.createElement("div");
+            row.className = "suggestion" + (index === 0 ? " active" : "");
+            var avatar = document.createElement("div");
+            avatar.className = "avatar";
+            avatar.textContent = initials(c.name);
+            var text = document.createElement("div");
+            var name = document.createElement("div");
+            name.className = "s-name";
+            name.textContent = c.name;
+            var addr = document.createElement("div");
+            addr.className = "s-email";
+            addr.textContent = c.email;
+            text.appendChild(name);
+            text.appendChild(addr);
+            row.appendChild(avatar);
+            row.appendChild(text);
+            row.addEventListener("mousedown", function (e) {
+                e.preventDefault();
+                onPick(c);
+                hideSuggestions();
+            });
+            box.appendChild(row);
+        });
+        suggestionState = { items: items, index: 0, onPick: onPick };
+        box.classList.add("open");
+        box.style.left = Math.min(rect.left, window.innerWidth - box.offsetWidth - 8) + "px";
+        var top = rect.bottom + 6;
+        if (top + box.offsetHeight > window.innerHeight - 8) top = rect.top - box.offsetHeight - 6;
+        box.style.top = top + "px";
+    }
+
+    function hideSuggestions() {
+        document.getElementById("suggestions").classList.remove("open");
+        suggestionState = null;
+    }
+
+    // returns true if the key was used by the dropdown
+    function handleSuggestionKey(e) {
+        if (!suggestionState) return false;
+        var rows = document.querySelectorAll("#suggestions .suggestion");
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            rows[suggestionState.index].classList.remove("active");
+            suggestionState.index = (suggestionState.index + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
+            rows[suggestionState.index].classList.add("active");
+            rows[suggestionState.index].scrollIntoView({ block: "nearest" });
+            return true;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault();
+            var state = suggestionState;
+            hideSuggestions();
+            state.onPick(state.items[state.index]);
+            return true;
+        }
+        return false;
+    }
+
+    // ================= Recipient chips (To / Cc / Bcc) =================
+    var EMAIL_RE = /^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/;
+    var recipients = {};
+
+    function setupRecipientField(container) {
+        var field = { name: container.dataset.field, el: container, list: [] };
+        var input = document.createElement("input");
+        input.type = "text";
+        input.autocomplete = "off";
+        container.appendChild(input);
+        field.input = input;
+
+        container.addEventListener("click", function (e) { if (e.target === container) input.focus(); });
+
+        input.addEventListener("keydown", function (e) {
+            if (handleSuggestionKey(e)) return;
+            if (e.key === "Enter" || e.key === "," || e.key === ";" || (e.key === "Tab" && input.value.trim())) {
+                if (input.value.trim()) {
+                    e.preventDefault();
+                    commitRecipientInput(field);
+                }
+            } else if (e.key === "Backspace" && !input.value && field.list.length) {
+                removeRecipient(field, field.list.length - 1);
+            }
+        });
+
+        input.addEventListener("input", function () {
+            var query = input.value.trim();
+            if (!query) { hideSuggestions(); return; }
+            showSuggestions(matchContacts(query, field.list), input.getBoundingClientRect(), function (c) {
+                input.value = "";
+                addRecipient(field, c.email);
+                input.focus();
+            });
+        });
+
+        input.addEventListener("paste", function () {
+            setTimeout(function () { if (/[,;\s]/.test(input.value.trim())) commitRecipientInput(field); }, 0);
+        });
+
+        input.addEventListener("blur", function () {
+            setTimeout(function () { if (input.value.trim()) commitRecipientInput(field); }, 150);
+        });
+
+        recipients[field.name] = field;
+    }
+
+    function commitRecipientInput(field) {
+        field.input.value.split(/[,;\s]+/).forEach(function (part) {
+            var match = part.match(/<([^>]+)>/);
+            var addr = (match ? match[1] : part).trim();
+            if (addr) addRecipient(field, addr);
+        });
+        field.input.value = "";
+        hideSuggestions();
+    }
+
+    function addRecipient(field, addr) {
+        addr = addr.trim().toLowerCase();
+        if (!addr || field.list.indexOf(addr) !== -1) return;
+        field.list.push(addr);
+        renderRecipients(field);
+    }
+
+    function removeRecipient(field, index) {
+        field.list.splice(index, 1);
+        renderRecipients(field);
+    }
+
+    function renderRecipients(field) {
+        field.el.querySelectorAll(".rcpt").forEach(function (chip) { chip.remove(); });
+        field.list.forEach(function (addr, index) {
+            var chip = document.createElement("span");
+            chip.className = "rcpt" + (EMAIL_RE.test(addr) ? "" : " invalid");
+            var contact = contacts.find(function (c) { return c.email === addr; });
+            chip.title = addr;
+            var label = document.createElement("span");
+            label.textContent = contact && contact.name && contact.name !== addr ? contact.name : addr;
+            var remove = document.createElement("button");
+            remove.type = "button";
+            remove.textContent = "\u00d7";
+            remove.title = "Remove";
+            remove.onclick = function () { removeRecipient(field, index); };
+            chip.appendChild(label);
+            chip.appendChild(remove);
+            field.el.insertBefore(chip, field.input);
+        });
+    }
+
+    function showCopyField(name) {
+        document.getElementById(name + "-row").classList.remove("hidden");
+        document.getElementById("show-" + name).classList.add("hidden");
+        recipients[name].input.focus();
+    }
+
+    document.querySelectorAll(".recipients").forEach(setupRecipientField);
+
+    // ================= Rich text editor =================
+    var editor = document.getElementById("email-body");
+    var savedRange = null;
+
+    function saveSelection() {
+        var sel = window.getSelection();
+        if (sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+            savedRange = sel.getRangeAt(0).cloneRange();
+        }
+    }
+
+    function restoreSelection() {
+        editor.focus();
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        if (savedRange) {
+            sel.addRange(savedRange);
+        } else {
+            var range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            sel.addRange(range);
+        }
+    }
+
+    editor.addEventListener("keyup", saveSelection);
+    editor.addEventListener("mouseup", saveSelection);
+    editor.addEventListener("input", function () {
+        saveSelection();
+        if (editor.innerHTML === "<br>") editor.innerHTML = "";
+        checkMention();
+    });
+
+    function fmt(command, value) {
+        editor.focus();
+        document.execCommand(command, false, value || null);
+        saveSelection();
+    }
+
+    function insertHtmlAtCursor(markup) {
+        restoreSelection();
+        document.execCommand("insertHTML", false, markup);
+        saveSelection();
+    }
+
+    function toggleFormatBar() {
+        var bar = document.getElementById("format-bar");
+        bar.classList.toggle("open");
+        document.getElementById("format-toggle").classList.toggle("on", bar.classList.contains("open"));
+    }
+
+    function editorText() {
+        return editor.innerText.replace(/\u00a0/g, " ").trim();
+    }
+
+    // ---- Links and Drive links ----
+    var linkMode = "link";
+
+    function openLinkDialog(mode, anchor) {
+        linkMode = mode;
+        document.getElementById("link-title").textContent = mode === "drive" ? "Insert Google Drive link" : "Insert link";
+        document.getElementById("link-url-label").textContent = mode === "drive" ? "Drive share link (copy it from Drive > Share > Copy link)" : "Web address (URL)";
+        document.getElementById("link-text").value = savedRange ? savedRange.toString() : "";
+        document.getElementById("link-url").value = "";
+        openPopover("link-popover", anchor);
+        document.getElementById(document.getElementById("link-text").value ? "link-url" : "link-text").focus();
+    }
+
+    function insertLink() {
+        var url = document.getElementById("link-url").value.trim();
+        var text = document.getElementById("link-text").value.trim();
+        if (!url) { document.getElementById("link-url").focus(); return; }
+        if (!/^(https?:|mailto:)/i.test(url)) url = "https://" + url;
+        if (!text) text = linkMode === "drive" ? "Google Drive file" : url;
+        closePopovers();
+        var label = linkMode === "drive" ? "\ud83d\udcc4 " + escapeHtml(text) : escapeHtml(text);
+        insertHtmlAtCursor('<a href="' + escapeHtml(url) + '" target="_blank">' + label + "</a>&nbsp;");
+    }
+
+    // ---- Emoji ----
+    var EMOJIS = ["😀","😃","😄","😁","😊","🙂","😉","😍","🤩","😎","🤔","😅","😂","🙏","👍","👏",
+                  "🙌","💪","🤝","👌","✌️","👋","🎉","🎊","🎁","🪔","✨","🌟","⭐","🔥","💯","✅",
+                  "❌","⚠️","📌","📎","📅","⏰","📈","📊","💼","📝","📧","💡","❤️","💙","☕","🚀"];
+
+    (function buildEmojiGrid() {
+        var grid = document.getElementById("emoji-grid");
+        EMOJIS.forEach(function (emoji) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.textContent = emoji;
+            b.onclick = function () { insertHtmlAtCursor(emoji); closePopovers(); };
+            grid.appendChild(b);
+        });
+    })();
+
+    // ---- Inline photo ----
+    function insertImage(input) {
+        var file = input.files[0];
+        input.value = "";
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            setEmailStatus("That photo is larger than 5 MB. Attach it as a file instead.", "error");
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+            insertHtmlAtCursor('<img src="' + reader.result + '" alt="' + escapeHtml(file.name) + '" style="max-width: 100%;"><br>');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ---- Signature ----
+    function openSignature(anchor) {
+        document.getElementById("signature-text").value = localStorage.getItem("jarvis_signature") || "";
+        openPopover("signature-popover", anchor);
+        document.getElementById("signature-text").focus();
+    }
+
+    function saveSignature() {
+        localStorage.setItem("jarvis_signature", document.getElementById("signature-text").value.trim());
+        toast("Signature saved");
+    }
+
+    function insertSignature() {
+        var text = localStorage.getItem("jarvis_signature");
+        closePopovers();
+        if (!text) return;
+        var old = editor.querySelector(".jarvis-signature");
+        if (old) old.remove();
+        editor.insertAdjacentHTML("beforeend",
+            '<div class="jarvis-signature"><br>--<br>' + escapeHtml(text).replace(/\n/g, "<br>") + "</div>");
+    }
+
+    // ---- @mentions ----
+    // Typing @name in the body suggests contacts; picking one tags them and adds them to To.
+    var mentionRange = null;
+
+    function checkMention() {
+        var sel = window.getSelection();
+        if (!sel.rangeCount || !sel.isCollapsed) { hideSuggestions(); return; }
+        var node = sel.anchorNode;
+        if (!node || node.nodeType !== Node.TEXT_NODE || !editor.contains(node)) { hideSuggestions(); return; }
+        var before = node.textContent.slice(0, sel.anchorOffset);
+        var match = before.match(/(^|\s)@([\w.\-+]*)$/);
+        if (!match) { hideSuggestions(); return; }
+
+        var start = sel.anchorOffset - match[2].length - 1;
+        mentionRange = document.createRange();
+        mentionRange.setStart(node, start);
+        mentionRange.setEnd(node, sel.anchorOffset);
+
+        var items = matchContacts(match[2]);
+        var query = match[2].toLowerCase();
+        if (EMAIL_RE.test(query) && !items.some(function (c) { return c.email === query; })) {
+            items.unshift({ email: query, name: nameFromEmail(query) });
+        }
+        var rect = mentionRange.getBoundingClientRect();
+        showSuggestions(items, rect, insertMention);
+    }
+
+    function insertMention(contact) {
+        if (!mentionRange) return;
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(mentionRange);
+        document.execCommand("insertHTML", false,
+            '<a class="mention" href="mailto:' + escapeHtml(contact.email) + '">@' + escapeHtml(contact.name) + "</a>&nbsp;");
+        mentionRange = null;
+        saveSelection();
+
+        var all = recipients.to.list.concat(recipients.cc.list, recipients.bcc.list);
+        if (all.indexOf(contact.email) === -1) {
+            rememberLocalContact(contact.email);
+            addRecipient(recipients.to, contact.email);
+            toast("Added " + contact.name + " to To");
+        }
+    }
+
+    editor.addEventListener("keydown", function (e) { handleSuggestionKey(e); });
+
+    // ================= Attachments =================
+    var selectedFiles = [];
+
+    function addFiles(input) {
+        for (var i = 0; i < input.files.length; i++) {
+            selectedFiles.push(input.files[i]);
+        }
+        input.value = ""; // allow picking the same file again after removing it
+        renderAttachments();
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        renderAttachments();
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function renderAttachments() {
+        var list = document.getElementById("attachment-list");
+        list.innerHTML = "";
+        selectedFiles.forEach(function (file, index) {
+            var item = document.createElement("li");
+            item.className = "chip";
+
+            var name = document.createElement("span");
+            name.className = "chip-name";
+            name.textContent = file.name;
+            name.title = file.name;
+
+            var size = document.createElement("span");
+            size.className = "chip-size";
+            size.textContent = formatSize(file.size);
+
+            var remove = document.createElement("button");
+            remove.textContent = "\u00d7";
+            remove.title = "Remove";
+            remove.onclick = function () { removeFile(index); };
+
+            item.appendChild(name);
+            item.appendChild(size);
+            item.appendChild(remove);
+            list.appendChild(item);
+        });
+    }
+
+    // ================= Polish / send / schedule =================
+    function setEmailStatus(text, type) {
+        var status = document.getElementById("email-status");
+        status.textContent = text;
+        status.className = type || "";
+    }
+
+    function textToHtml(text) {
+        return text.split(/\n{2,}/).map(function (para) {
+            return "<div>" + escapeHtml(para).replace(/\n/g, "<br>") + "</div><div><br></div>";
+        }).join("");
+    }
+
+    function polishEmail() {
+        stopListening();
+        var subject = document.getElementById("email-subject").value;
+        var body = editorText();
+        if (!subject.trim() && !body) {
+            setEmailStatus("Write a subject or message first.", "error");
+            return;
+        }
+        var signature = editor.querySelector(".jarvis-signature");
+        if (signature) body = editorTextWithout(signature);
+
+        var btn = document.getElementById("polish-btn");
+        btn.disabled = true;
+        setEmailStatus("Polishing your email...");
+
+        fetch("/polish_email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject: subject, body: body })
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            if (data.error) {
+                setEmailStatus(data.error, "error");
+                return;
+            }
+            document.getElementById("email-subject").value = data.subject;
+            var sigHtml = signature ? signature.outerHTML : "";
+            editor.innerHTML = textToHtml(data.body) + sigHtml;
+            setEmailStatus("Polished. Review it, then click Send.", "success");
+        })
+        .catch(function (error) { setEmailStatus("Error: " + error, "error"); })
+        .finally(function () { btn.disabled = false; });
+    }
+
+    function editorTextWithout(node) {
+        var clone = editor.cloneNode(true);
+        var sig = clone.querySelector(".jarvis-signature");
+        if (sig) sig.remove();
+        document.body.appendChild(clone);
+        clone.style.position = "absolute";
+        clone.style.left = "-9999px";
+        var text = clone.innerText.trim();
+        clone.remove();
+        return text;
+    }
+
+    function collectEmail() {
+        ["to", "cc", "bcc"].forEach(function (name) {
+            if (recipients[name].input.value.trim()) commitRecipientInput(recipients[name]);
+        });
+        var invalid = recipients.to.list.concat(recipients.cc.list, recipients.bcc.list)
+            .filter(function (a) { return !EMAIL_RE.test(a); });
+        if (invalid.length) {
+            setEmailStatus("Fix the invalid address: " + invalid.join(", "), "error");
+            return null;
+        }
+        if (!recipients.to.list.length) {
+            setEmailStatus("Please add at least one recipient in To.", "error");
+            recipients.to.input.focus();
+            return null;
+        }
+        var formData = new FormData();
+        formData.append("to", recipients.to.list.join(", "));
+        formData.append("cc", recipients.cc.list.join(", "));
+        formData.append("bcc", recipients.bcc.list.join(", "));
+        formData.append("subject", document.getElementById("email-subject").value);
+        formData.append("body", editorText());
+        formData.append("html", editor.innerHTML);
+        selectedFiles.forEach(function (file) { formData.append("attachments", file); });
+        return formData;
+    }
+
+    function sendEmail(sendAt) {
+        stopListening();
+        closePopovers();
+        var formData = collectEmail();
+        if (!formData) return;
+        if (sendAt) formData.append("send_at", sendAt);
+
+        var btn = document.getElementById("send-email-btn");
+        btn.disabled = true;
+        setEmailStatus(sendAt ? "Scheduling..." : "Sending...");
+
+        fetch("/send_email", { method: "POST", body: formData })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            var ok = data.scheduled || (data.response && data.response.indexOf("Email sent") === 0);
+            setEmailStatus(data.response, ok ? "success" : "error");
+            if (ok) {
+                recipients.to.list.concat(recipients.cc.list, recipients.bcc.list).forEach(rememberLocalContact);
+                clearCompose();
+                toast(data.scheduled ? "Email scheduled" : "Email sent");
+                if (data.scheduled) loadScheduled();
+            }
+        })
+        .catch(function (error) { setEmailStatus("Error: " + error, "error"); })
+        .finally(function () { btn.disabled = false; });
+    }
+
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+    function toLocalInput(d) {
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
+
+    function openSchedule(anchor) {
+        var now = new Date();
+        var tomorrow8 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8, 0);
+        var tomorrow13 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 13, 0);
+        var daysToMonday = ((8 - now.getDay()) % 7) || 7;
+        var monday8 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToMonday, 8, 0);
+        var presets = [["Tomorrow morning", tomorrow8], ["Tomorrow afternoon", tomorrow13], ["Monday morning", monday8]];
+
+        var box = document.getElementById("schedule-presets");
+        box.innerHTML = "";
+        presets.forEach(function (p) {
+            var b = document.createElement("button");
+            b.className = "menu-item";
+            b.innerHTML = escapeHtml(p[0]) + "<small>" + escapeHtml(p[1].toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })) + "</small>";
+            b.onclick = function () { sendEmail(toLocalInput(p[1])); };
+            box.appendChild(b);
+        });
+        var picker = document.getElementById("schedule-at");
+        picker.min = toLocalInput(now);
+        picker.value = toLocalInput(new Date(now.getTime() + 60 * 60 * 1000));
+        openPopover("schedule-popover", anchor);
+    }
+
+    function scheduleFromPicker() {
+        var value = document.getElementById("schedule-at").value;
+        if (!value) return;
+        sendEmail(value);
+    }
+
+    function loadScheduled() {
+        fetch("/scheduled").then(function (r) { return r.json(); }).then(function (items) {
+            var box = document.getElementById("scheduled-box");
+            var list = document.getElementById("scheduled-list");
+            box.style.display = items.length ? "block" : "none";
+            list.innerHTML = "";
+            items.forEach(function (item) {
+                var row = document.createElement("div");
+                row.className = "scheduled-item";
+                var when = document.createElement("span");
+                when.className = "when";
+                when.textContent = new Date(item.send_at.replace(" ", "T")).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+                var what = document.createElement("span");
+                what.className = "what";
+                what.textContent = (item.subject || "(no subject)") + " \u2014 to " + item.to + (item.error ? "  (" + item.error + ")" : "");
+                var cancel = document.createElement("button");
+                cancel.className = "btn btn-ghost";
+                cancel.textContent = "Cancel";
+                cancel.onclick = function () {
+                    fetch("/scheduled/" + item.id, { method: "DELETE" }).then(loadScheduled);
+                };
+                row.appendChild(when);
+                row.appendChild(what);
+                row.appendChild(cancel);
+                list.appendChild(row);
+            });
+        }).catch(function () {});
+    }
+
+    function clearCompose() {
+        ["to", "cc", "bcc"].forEach(function (name) {
+            recipients[name].list = [];
+            recipients[name].input.value = "";
+            renderRecipients(recipients[name]);
+        });
+        document.getElementById("cc-row").classList.add("hidden");
+        document.getElementById("bcc-row").classList.add("hidden");
+        document.getElementById("show-cc").classList.remove("hidden");
+        document.getElementById("show-bcc").classList.remove("hidden");
+        document.getElementById("email-subject").value = "";
+        editor.innerHTML = "";
+        savedRange = null;
+        selectedFiles = [];
+        renderAttachments();
+    }
+
+    function discardEmail() {
+        stopListening();
+        var hasContent = recipients.to.list.length || recipients.cc.list.length || recipients.bcc.list.length ||
+                         document.getElementById("email-subject").value || editorText() || selectedFiles.length;
+        if (hasContent && !confirm("Discard this email?")) return;
+        clearCompose();
+        setEmailStatus("");
+    }
+
+    // ================= Tasks =================
+    var tasks = [];
+    var taskStatus = {};
+    var taskFilter = "all";
+    var tasksTimer = null;
+
+    function todayString() {
+        var d = new Date();
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    }
+
+    function isOverdue(t) {
+        return t.status !== "Completed" && t.deadline && t.deadline.slice(0, 10) < todayString();
+    }
+
+    function statusClass(s) {
+        return s === "Completed" ? "completed" : s === "In Progress" ? "in-progress" : "not-started";
+    }
+
+    function formatDate(value, withTime) {
+        if (!value) return "";
+        var d = new Date(value.length > 10 ? value.replace(" ", "T") : value + "T00:00");
+        if (isNaN(d)) return value;
+        var opts = { day: "numeric", month: "short", year: "numeric" };
+        if (withTime && value.length > 10) { opts.hour = "numeric"; opts.minute = "2-digit"; }
+        return d.toLocaleString([], opts);
+    }
+
+    function loadTasks() {
+        return fetch("/tasks").then(function (r) { return r.json(); }).then(function (data) {
+            tasks = data.tasks;
+            taskStatus = data.status;
+            renderTasks();
+            renderTaskStatus();
+            scheduleTaskRefresh();
+        }).catch(function () {});
+    }
+
+    function refreshTaskBadge() {
+        fetch("/tasks").then(function (r) { return r.json(); }).then(function (data) {
+            tasks = data.tasks;
+            taskStatus = data.status;
+            updateBadge();
+            if (currentView === "tasks") { renderTasks(); renderTaskStatus(); }
+        }).catch(function () {});
+    }
+
+    function scheduleTaskRefresh() {
+        clearTimeout(tasksTimer);
+        if (currentView !== "tasks") return;
+        tasksTimer = setTimeout(loadTasks, taskStatus.running ? 3000 : 15000);
+    }
+
+    function updateBadge() {
+        var open = tasks.filter(function (t) { return t.status !== "Completed"; }).length;
+        document.getElementById("tasks-badge").textContent = open ? open : "";
+    }
+
+    function setTaskFilter(filter) {
+        taskFilter = filter;
+        document.querySelectorAll(".stat-card").forEach(function (c) {
+            c.classList.toggle("active", c.dataset.filter === filter);
+        });
+        renderTasks();
+    }
+
+    function renderTaskStatus() {
+        var s = taskStatus;
+        var setup = document.getElementById("tasks-setup-banner");
+        if (!s.configured) {
+            setup.innerHTML = "<b>Almost ready.</b> Add your managers' email addresses to <code>TASK_MANAGERS</code> in the <code>.env</code> file " +
+                "(comma-separated), then restart Jarvis. Tasks are saved to <code>" + escapeHtml(s.file || "") + "</code>.";
+            setup.classList.add("show");
+        } else {
+            setup.classList.remove("show");
+        }
+
+        var warn = document.getElementById("tasks-warn-banner");
+        var warnings = [];
+        if (s.file_error) warnings.push(escapeHtml(s.file_error));
+        if (s.pending_changes) warnings.push(s.pending_changes + " change(s) are waiting to be saved to Excel.");
+        warn.innerHTML = warnings.join(" ");
+        warn.classList.toggle("show", warnings.length > 0);
+
+        var info = [];
+        if (s.running) info.push(s.progress || "Checking email...");
+        else if (s.last_check) info.push("Last checked " + formatDate(s.last_check, true));
+        if (s.message && !s.running && s.configured) info.push(s.message);
+        if (s.configured) info.push("Checks every " + s.check_minutes + " min");
+        document.getElementById("sync-info").innerHTML = info.map(escapeHtml).join("<br>");
+        document.getElementById("check-now-btn").disabled = !!s.running || !s.configured;
+    }
+
+    function renderTasks() {
+        updateBadge();
+        var counts = { all: tasks.length, "Not Started": 0, "In Progress": 0, Completed: 0, overdue: 0 };
+        tasks.forEach(function (t) {
+            counts[t.status || "Not Started"] = (counts[t.status || "Not Started"] || 0) + 1;
+            if (isOverdue(t)) counts.overdue++;
+        });
+        document.getElementById("count-all").textContent = counts.all;
+        document.getElementById("count-not-started").textContent = counts["Not Started"];
+        document.getElementById("count-in-progress").textContent = counts["In Progress"];
+        document.getElementById("count-completed").textContent = counts.Completed;
+        document.getElementById("count-overdue").textContent = counts.overdue;
+
+        var query = document.getElementById("task-search").value.trim().toLowerCase();
+        var visible = tasks.filter(function (t) {
+            if (taskFilter === "overdue" && !isOverdue(t)) return false;
+            if (taskFilter !== "all" && taskFilter !== "overdue" && (t.status || "Not Started") !== taskFilter) return false;
+            if (query) {
+                var hay = [t.id, t.task, t.details, t.from, t.subject, t.note].join(" ").toLowerCase();
+                if (hay.indexOf(query) === -1) return false;
+            }
+            return true;
+        });
+
+        var container = document.getElementById("tasks-container");
+        if (!visible.length) {
+            container.innerHTML = '<div class="empty-state">' +
+                (tasks.length ? "No tasks match this filter." : "No tasks yet. When your managers email you tasks, they'll appear here.") + "</div>";
+            return;
+        }
+
+        var rows = visible.map(function (t) {
+            var status = t.status || "Not Started";
+            var fromName = (t.from || "").replace(/\s*<[^>]*>\s*/, "").trim() || t.from;
+            var deadline = t.deadline ? formatDate(t.deadline.slice(0, 10)) : '<span class="muted">\u2014</span>';
+            if (isOverdue(t)) deadline = '<span class="overdue-text">' + deadline + "</span>";
+            var options = ["Not Started", "In Progress", "Completed"].map(function (s) {
+                return '<option' + (s === status ? " selected" : "") + ">" + s + "</option>";
+            }).join("");
+            var replyInfo = status === "Completed"
+                ? (t.reply_sent === "Yes" ? "\u2713 Reply sent" : (t.message_id ? "Reply pending" : "No email to reply to"))
+                : "";
+            return '<tr class="' + (isOverdue(t) ? "overdue" : "") + '">' +
+                '<td class="task-id">' + escapeHtml(t.id) + "</td>" +
+                "<td>" +
+                    '<div class="task-title">' + escapeHtml(t.task) + "</div>" +
+                    (t.details ? '<div class="task-details">' + escapeHtml(t.details) + "</div>" : "") +
+                    '<div class="task-from">From ' + escapeHtml(fromName || "unknown") + (t.subject ? " \u00b7 " + escapeHtml(t.subject) : "") + "</div>" +
+                    (t.note ? '<div class="task-note">Note: ' + escapeHtml(t.note) + "</div>" : "") +
+                "</td>" +
+                '<td class="nowrap hide-sm">' + escapeHtml(formatDate(t.received, true)) + "</td>" +
+                '<td class="nowrap">' + deadline + "</td>" +
+                '<td class="hide-sm">' + (t.priority ? '<span class="priority ' + escapeHtml(t.priority) + '">' + escapeHtml(t.priority) + "</span>" : "") + "</td>" +
+                "<td>" +
+                    '<select class="status-select ' + statusClass(status) + '" data-id="' + escapeHtml(t.id) + '" data-current="' + escapeHtml(status) + '" onchange="onStatusChange(this)">' + options + "</select>" +
+                    (replyInfo ? '<div class="reply-flag">' + replyInfo + "</div>" : "") +
+                "</td>" +
+                '<td class="nowrap hide-sm">' + (t.completed_on ? escapeHtml(formatDate(t.completed_on, true)) : '<span class="muted">\u2014</span>') + "</td>" +
+            "</tr>";
+        }).join("");
+
+        container.innerHTML = '<table class="task-table"><thead><tr>' +
+            '<th>ID</th><th>Task</th><th class="hide-sm">Received</th><th>Deadline</th><th class="hide-sm">Priority</th><th>Status</th><th class="hide-sm">Completed</th>' +
+            "</tr></thead><tbody>" + rows + "</tbody></table>";
+    }
+
+    var pendingCompletion = null;
+
+    function onStatusChange(select) {
+        var id = select.dataset.id;
+        var status = select.value;
+        if (status === "Completed") {
+            var task = tasks.find(function (t) { return t.id === id; });
+            pendingCompletion = { select: select, id: id };
+            document.getElementById("complete-title").textContent = "Complete " + id + ": " + (task ? task.task : "");
+            document.getElementById("complete-desc").textContent = task && task.message_id
+                ? "Jarvis will reply to " + ((task.from || "").replace(/\s*<[^>]*>\s*/, "") || "your manager") + "'s original email to say this task is done."
+                : "This task has no original email, so no reply will be sent.";
+            document.getElementById("complete-note").value = task && task.note ? task.note : "";
+            document.getElementById("complete-modal").classList.add("open");
+            document.getElementById("complete-note").focus();
+            return;
+        }
+        updateTaskStatus(id, status, null, select);
+    }
+
+    function closeCompleteModal(confirmed) {
+        document.getElementById("complete-modal").classList.remove("open");
+        if (!pendingCompletion) return;
+        var p = pendingCompletion;
+        pendingCompletion = null;
+        if (confirmed) {
+            updateTaskStatus(p.id, "Completed", document.getElementById("complete-note").value, p.select);
+        } else {
+            p.select.value = p.select.dataset.current;
+        }
+    }
+
+    function updateTaskStatus(id, status, note, select) {
+        select.disabled = true;
+        toast(status === "Completed" ? "Marking " + id + " completed and replying..." : "Updating " + id + "...");
+        fetch("/tasks/" + encodeURIComponent(id) + "/status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: status, note: note })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { toast(data.response); })
+        .catch(function (error) { toast("Error: " + error); })
+        .finally(function () { loadTasks(); });
+    }
+
+    function checkTasksNow() {
+        fetch("/tasks/check", { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            toast(data.response);
+            taskStatus.running = true;
+            renderTaskStatus();
+            setTimeout(loadTasks, 1500);
+        });
+    }
+
+    // ================= Start =================
+    addMessage("jarvis", "Hello Boss. How can I help you today?");
+    messageInput.focus();
+    loadContacts();
+    refreshTaskBadge();
+    setInterval(function () { if (currentView !== "tasks") refreshTaskBadge(); }, 60000);
+</script>
+</body>
+</html>
