@@ -32,6 +32,7 @@ if workspace_id:
     claude_headers["anthropic-workspace-id"] = workspace_id
 
 email_address = os.environ.get("EMAIL_ADDRESS", "")
+email_sender_name = os.environ.get("EMAIL_SENDER_NAME", "")
 email_password = os.environ.get("EMAIL_APP_PASSWORD", "").replace(" ", "")
 smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 smtp_port = int(os.environ.get("SMTP_PORT", "587"))

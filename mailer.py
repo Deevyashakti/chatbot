@@ -5,10 +5,10 @@ import re
 import smtplib
 import threading
 from email.message import EmailMessage
-from email.utils import getaddresses, make_msgid
+from email.utils import formataddr, getaddresses, make_msgid
 
 import claude
-from config import model, email_address, email_password, smtp_host, smtp_port, DATA_DIR
+from config import model, email_address, email_sender_name, email_password, smtp_host, smtp_port, DATA_DIR
 
 CONTACTS_FILE = os.path.join(DATA_DIR, "contacts.json")
 EMAIL_RE = re.compile(r"^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$")
@@ -96,7 +96,7 @@ def send_email(to, subject, body, attachments=None, cc=None, bcc=None, html=None
         return "Failed to send email: please add at least one recipient in To"
 
     msg = EmailMessage()
-    msg["From"] = email_address
+    msg["From"] = formataddr((email_sender_name, email_address)) if email_sender_name else email_address
     msg["To"] = ", ".join(to_list)
     if cc_list:
         msg["Cc"] = ", ".join(cc_list)
