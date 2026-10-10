@@ -39,7 +39,9 @@ smtp_port = int(os.environ.get("SMTP_PORT", "587"))
 imap_host = os.environ.get("IMAP_HOST", "imap.gmail.com")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+# Vercel's deployment folder is read-only; /tmp is writable but wiped between cold starts
+DATA_DIR = os.environ.get("DATA_DIR") or (
+    "/tmp/jarvis-data" if os.environ.get("VERCEL") else os.path.join(BASE_DIR, "data"))
 tasks_file = os.environ.get("TASKS_FILE") or os.path.join(DATA_DIR, "tasks.xlsx")
 tasks_sheet = os.environ.get("TASKS_SHEET", "")
 task_managers = [

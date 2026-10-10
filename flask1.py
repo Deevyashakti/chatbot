@@ -4,7 +4,6 @@ from datetime import datetime
 
 from flask import Flask, render_template, jsonify, request
 from agent1 import run_conversation
-from audio1 import text_audio
 import background
 import config
 import mailer
@@ -19,7 +18,6 @@ def process_message_func1():
     msg=request.json['message']
     print(msg)
     resp = run_conversation(msg)
-    # text_audio(resp)
     return jsonify({"response": resp })
 
 @app.route('/polish_email', methods=['POST'])
@@ -86,6 +84,10 @@ def tasks_list():
 def tasks_check():
     if task_tracker.status["running"]:
         return jsonify({"response": "A check is already running"})
+    # serverless functions are frozen once the response is sent, so a thread would never finish
+    if os.environ.get("VERCEL"):
+        task_tracker.run_sync()
+        return jsonify({"response": task_tracker.get_status().get("message") or "Email check finished"})
     threading.Thread(target=task_tracker.run_sync, daemon=True).start()
     return jsonify({"response": "Checking your email for new tasks..."})
 
